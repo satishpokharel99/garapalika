@@ -1,4 +1,4 @@
-// App.js
+// App.tsx
 import React, { useEffect, useState } from "react";
 import { AuthContext } from "./contexts/AuthContext";
 import { ActivityIndicator, View } from "react-native";
@@ -15,11 +15,30 @@ import HomeScreen from "./screens/HomeScreen";
 import CreateIssueScreen from "./screens/CreateIssueScreen";
 import IssueDetailsScreen from "./screens/IssueDetailsScreen";
 import ProfileScreen from "./screens/ProfileScreen";
+import AdminDashboard from "./screens/AdminDashboard";
+import UserManagement from "./screens/UserManagement";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function AppTabs() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { session } = React.useContext(AuthContext);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, [session]);
+
+  const checkAdminStatus = async () => {
+    if (!session?.user?.id) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", session.user.id)
+      .single();
+    setIsAdmin(data?.is_admin || false);
+  };
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -31,6 +50,8 @@ function AppTabs() {
             return <Icon name="plus-box" color={color} size={size} />;
           if (route.name === "Profile")
             return <Icon name="account" color={color} size={size} />;
+          if (route.name === "Admin")
+            return <Icon name="shield-account" color={color} size={size} />;
           return null;
         },
       })}
@@ -38,6 +59,16 @@ function AppTabs() {
       <Tab.Screen name="Feed" component={HomeScreen} />
       <Tab.Screen name="Create" component={CreateIssueScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
+      {isAdmin && (
+        <Tab.Screen
+          name="Admin"
+          component={AdminDashboard}
+          options={{
+            tabBarBadge: "!",
+            tabBarBadgeStyle: { backgroundColor: "#F44336" },
+          }}
+        />
+      )}
     </Tab.Navigator>
   );
 }
@@ -108,7 +139,12 @@ export default function App() {
                 <Stack.Screen
                   name="IssueDetails"
                   component={IssueDetailsScreen}
-                  options={{ title: "Issue" }}
+                  options={{ title: "Issue Details" }}
+                />
+                <Stack.Screen
+                  name="UserManagement"
+                  component={UserManagement}
+                  options={{ title: "User Management" }}
                 />
               </>
             )}
